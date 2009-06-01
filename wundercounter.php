@@ -9,7 +9,7 @@ Author: WunderSolutions
 Author URI: http://www.wundersolutions.com/
 */
 
-/**
+/*
  * Note, you have to leave the above block in as wordpress parses it and
  * uses it to identify this file as a plugin.
  */
@@ -113,6 +113,7 @@ class WunderPluginBase {
         
         return $this->base_dir . $pathname;
     }
+    
 }
 
 class WunderPluginWidget extends WunderPluginBase
@@ -393,6 +394,13 @@ class WunderPluginWidget extends WunderPluginBase
 
 class WunderCounter extends WunderPluginWidget {
     
+    var $settings_defaults   = array(
+        'type'      => 'invisible',
+        'style'     => '',
+        'username'  => '',
+        'page'      => '',
+    );
+    
     function WunderCounter() {
         $this->WunderPluginWidget(
             __FILE__,
@@ -403,11 +411,110 @@ class WunderCounter extends WunderPluginWidget {
     }
     
     function register_hooks() {
-        add_filter('the_content',array($this,'include_counter'));
+        //add_filter('the_content',array($this,'include_counter'));
+        add_action('init',array(&$this,'init'));
+        add_action('wp_dashboard_setup',array(&$this,'dashboard_setup'));
     }
     
-    function include_counter() {
         
+    function init() {
+        add_submenu_page('plugins.php','WunderCounter', 'WunderCounter', 10, __FILE__, array(&$this,'settings_menu'));
+        
+    }
+
+    
+    function dashboard_setup() {
+        if( (float) get_bloginfo('version') >= 2.7)
+            wp_add_dashboard_widget('wundercounter-dashboard', 'WunderCounter', array(&$this,'dashboard_widget'));
+    }
+    
+    function dashboard_widget() {
+        ?>
+        <p>WunderCounter is up and running.</p>
+        <?php
+    }
+    
+    function settings_page() {
+        // IF UPDATE
+        
+        //DISPLAY
+        ?>
+<div class="wrap">
+    <h2>WunderCounter Settings</h2>
+    
+    <form method="post" action="options.php">
+        <?php wp_nonce_field('wundercounter-settings'); ?>
+    
+        <table class="form-table" style='width: auto;'>
+
+            <tr valign="top">
+                <th scope="row" rowspan='3'>Username:<br /><span style='font-size: .8em'>(this is your WunderCounter user name; this plugin will not function without a username)</span></th>
+                <td colspan='2'>
+                    
+            <tr valign="top">
+                <th scope="row" rowspan='3'>Type of Counter:</th>
+                <td>
+                    <input type='radio' name='type' id='type1' value='invisible' />
+                </td>
+                <td>
+                    Invisible Counter
+                </td>
+            </tr>
+            <tr valign='top'>
+                <td>
+                    <input type='radio' name='type' id='type2' value='visible-auto' />
+                </td>
+                <td>
+                    Visible Counter (automatic)<br />
+                    <span style='font-size: .8em;'>Counter is automatically inserted at the end of each page just above the footer</span>
+                </td>
+            </tr>
+            <tr valign='top'>
+                <td>
+                    <input type='radio' name='type' id='type3' value='visible-manual' />
+                </td>
+                <td>
+                    Visible Counter (manual)<br />
+                    <span style='font-size: .8em;'>You will place the WunderCounter Widget into the sidesbars manually.</span>
+                </td>
+            </tr>
+
+            <tr valign="top">
+                <th scope="row">Style:<br /><span style='font-size: .8em'>(only applies when using the visible counter)</span></th>
+                <td colspan='2'>
+                    <select name='style' id='style'>
+                        <option value=''>Default Style</option>
+                        <option value='odometer'>Odometer</option>
+                        <option value='57chevy'>&rsquo;57 Chevy</option>
+                        <option value='odometerblack'>Odometer (Black)</option>
+                        <option value='odometerwhite'>Odometer (White)</option>
+                        <option value='brush'>Brush</option>
+                        <option value='chalk'>Chalk</option>
+                        <option value='nextgen'>Next Generation</option>
+                        <option value='flame'>Flame</option>
+                        <option value='katt151'>Katt 151</option>
+                        <option value='microsc'>Microscopic</option>
+                        <option value='miniscu'>Miniscule</option>
+                        <option value='stencil'>Stencil</option>
+                        <option value='punk'>Punk</option>
+                        <option value='rosewd'>Rosewd</option>
+                    </select>
+                </td>
+            </tr>
+    
+        </table>
+    
+        <input type="hidden" name="action" value="update" />
+        <input type="hidden" name="page_options" value="new_option_name,some_other_option,option_etc" />
+    
+        <p class="submit">
+            <input type="submit" class="button-primary" value="<?php _e('Save Changes') ?>" />
+        </p>
+    
+    </form>
+</div>
+        
+        <?php
     }
     
     /***************************
