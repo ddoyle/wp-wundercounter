@@ -527,23 +527,28 @@ class WunderCounter extends WunderPluginWidget {
 
 
         $defaults = array(
-            'username'      => '',
-            'type'          => 'invisible',
-            'style'         => 'default',
-            'complexity'    => 'simple',
-            'background'    => 'transparent',
-            'text_colour'   => 'black',
-            'simple_type'   => 'single_id', // single_id|track_all
-            'simple_id'     => 'my_blog',   // the "tag" under which the hit counter counts when single_id is chosen
-            'adv_base_id'   => 'my_blog',
+            'username'          => '',
+            'type'              => 'invisible',
+            'style'             => 'default',
+            'complexity'        => 'simple',
+            'background'        => 'transparent',
+            'text_colour'       => 'black',
+            'simple_type'       => 'single_id', // single_id|track_all
+            'simple_id'         => 'my_blog',   // the "tag" under which the hit counter counts when single_id is chosen
+            'adv_base_id'       => 'my_blog',
             // the order of when these checks are done is important
-            'adv_home_type' => 'single_id', // base|single_id|url|composed  is_front_page
-            'adv_home_id'   => 'home',
-            //is_page() // base|single_id|composed|url
-            //is_archive()  // base|single_id|composed|url
-            //is_search()   // base|single_id|url         
-            //is_single()   // base|single_id|composed|url
-            // default    // base|single_id|composed
+            'adv_home_type'     => 'base', // base|single_id|url  is_front_page
+            'adv_home_id'       => 'myblog_home',
+            'adv_page_type'     => 'base', // base|single_id|url|composed
+            'adv_page_id'       => 'myblog_page',
+            'adv_archive_type'  => 'base', //base|single_id|url|composed
+            'adv_archive_id'    => 'myblog_archive',
+            'adv_search_type'   => 'base', // base|single|url|composed
+            'adv_search_id'     => 'myblog_search',
+            'adv_entry_type'    => 'base', //base|single|url|composed
+            'adv_entry_id'      => 'myblog_entry',
+            'adv_default_type'  => 'base', //base|single|url
+            'adv_default_id'    => 'myblog_default'
             
         );
 
