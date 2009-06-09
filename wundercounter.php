@@ -470,21 +470,15 @@ class WunderCounter extends WunderPluginWidget {
         'punk'              => 'Punk',
         'rosewd'            => 'Rosewood',
     );
-    
-    var $background = array(
-        'transparent',
-        'black',
-        'white',
-        'red',
-        'gray',
+
+    var $types = array(
+        'base'      => 'Use the base id string',
+        'url'       => 'Use the URL of the page',
     );
     
-    var $text_colour = array(
-        'black',
-        'white',
-        'red',
-        'gray',
-    );
+    var $background = explode(' ','transparent black white red gray' );
+    
+    var $text_colour = explode(' ','black white red gray' );
     
     function WunderCounter() {
         $this->WunderPluginWidget(
@@ -651,13 +645,26 @@ class WunderCounter extends WunderPluginWidget {
             </tr>
     
             <tr valign='top'>
-                <th rowspan='2' scope='row'>Settings Level:</th>
                 <td><input type='radio' name='complexity' value='advanced'></td>
                 <td>Advanced</td>
             </tr>
     
         </table>
-    
+
+        <div id='wundercounter-simple'>    
+            <table class="form-table" style='width: auto;'>
+                <th scope='row'>Type</th>
+                <td>
+                    <select name='simple_type' id='simple_type'>
+                        <?php echo $this->make_option_list(array); ?>
+                    </select>
+                </td>
+            </table>
+        </div>
+        <div id='wundercounter-advanced'>
+            <table class="form-table" style='width: auto;'>
+            </table>
+        </div>
         
     
         <input type="hidden" name="action" value="update" />
