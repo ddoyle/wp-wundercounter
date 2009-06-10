@@ -14,7 +14,7 @@ Author URI: http://www.wundersolutions.com/
  * uses it to identify this file as a plugin.
  */
 
-if(!class_exists('MultiWidget')):
+if(!class_exists('WunderPluginBase')):
 
 /*
 
@@ -151,6 +151,8 @@ class WunderPluginBase {
     }
 }
 
+endif;
+
 /** This class wraps up lots of secret knowledge about how to make
  *  Wordpress "multi" widgets. These are widgets that allow more than one
  *  instance to be created. The standard "Text" widget is a simple example.
@@ -158,6 +160,7 @@ class WunderPluginBase {
  *  You must extend this class and over-ride three member functions.
  *  Scroll to the bottom of the file for a fully working example.
  */
+if(!class_exists('WunderPluginWidget')):
 
 class WunderPluginWidget extends WunderPluginBase
 {
@@ -444,6 +447,8 @@ class WunderPluginWidget extends WunderPluginBase
 
 } // end class MultiWidget
 
+endif;
+
 class WunderCounter extends WunderPluginWidget {
     
     // counter styles
@@ -477,6 +482,11 @@ class WunderCounter extends WunderPluginWidget {
         'composed'  => 'Append the ID and additional info to the BCN',
         'url'       => 'Use the full page URL',
     );
+    var $home_types = array(
+        'none'      => 'Do not track this type of page',
+        'base'      => 'Use the BCN as defined above',
+        'url'       => 'Use the full page URL',
+    );
     
     var $advanced_counters = array(
         'home'      => 'Home Page',
@@ -499,9 +509,23 @@ class WunderCounter extends WunderPluginWidget {
     function register_hooks() {
         //add_filter('the_content',array($this,'include_counter'));
         add_action('init',array(&$this,'init'));
+        
+        // run dashboard setup
         add_action('wp_dashboard_setup',array(&$this,'dashboard_setup'));
+        add_action('template_redirect', array(&$this,'add_counter_to_content_hook'));
         //register_activation_hook( __FILE__, array(&$this,'activation_hook') );
 
+    }
+    
+    // only add the filter if it's invisible or visible-auto
+    function add_counter_to_content_hook() {
+        $options = $this->defaults(get_option($this->id_base));
+        if(in_array($options['type'],array('invisible','visible-auto')))
+            add_filter('the_content',array(&$this,'add_counter_to_content'));
+    }
+    // append the counter
+    function add_counter_to_content($content) {
+        return $content . $this->build_counter(get_option($this->id_base));
     }
     
     //function activation_hook() {
@@ -514,12 +538,13 @@ class WunderCounter extends WunderPluginWidget {
         add_submenu_page('plugins.php','WunderCounter', 'WunderCounter', 10, __FILE__, array(&$this,'admin_menu'));
     }
 
-    
+    // add dashboard widget
     function dashboard_setup() {
         //if( (float) get_bloginfo('version') >= 2.7)
         wp_add_dashboard_widget('wundercounter-dashboard', 'WunderCounter', array(&$this,'dashboard_widget'));
     }
     
+    // dashboard widget
     function dashboard_widget() {
         $options = $this->defaults(get_option($this->id_base));
         if ( empty($options['username']) ) {
@@ -530,6 +555,7 @@ class WunderCounter extends WunderPluginWidget {
         }
     }
     
+    // create defaults
     function defaults(&$options = array()) {
         
         // make sure we at least have something
@@ -547,11 +573,12 @@ class WunderCounter extends WunderPluginWidget {
             'complexity'        => 'simple',
             'simple_type'       => 'simple', // simple|url
             'simple_id'         => 'my_blog',   // the "tag" under which the hit counter counts when single_id is chosen
-            'adv_base_id'       => 'myblog',
+            'adv_base_id'       => 'my_blog',
         );
         foreach ( $this->advanced_counters as $page_type => $label ) {
             $defaults['adv_'.$page_type.'_type'] = 'base';
-            $defaults['adv_'.$page_type.'_id'] = $page_type;
+            if($page_type != 'home')
+                $defaults['adv_'.$page_type.'_id'] = $page_type;
         }
 
         // any are FALSE set to default (since 0 is invalid for any numerics we're safe)        
@@ -590,7 +617,7 @@ class WunderCounter extends WunderPluginWidget {
              */
             $_POST = array_map( 'stripslashes_deep', $_POST );
             
-            $params = $this->defaults((array) $_POST['wundercounter']);
+            $params = $this->defaults(array_map('trim',(array) $_POST['wundercounter']));
             
             // validate
             if( !( isset($params['username']) || strlen($params['username']) ) ) {
@@ -604,11 +631,11 @@ class WunderCounter extends WunderPluginWidget {
             //       label => english label of the field
             //       haystack => array of valid values for this field
             $to_validate = array(
-                array( 'key' => 'type',         'label' => 'Type of Counter',   'haystack' => array('visible-auto','visible-manual','invisible')),
-                array( 'key' => 'style',        'label' => 'Style',             'haystack' => array_keys($this->styles) ),
-                array( 'key' => 'text_colour',  'label' => 'Style',             'haystack' => array_keys($this->text_colour) ),
-                array( 'key' => 'background',   'label' => 'Style',             'haystack' => array_keys($this->background) ),
-                array( 'key' => 'complexity',   'label' => 'Complexity',        'haystack' => array('simple','advanced')),
+                array( 'key' => 'type',         'label' => 'Type of Counter',           'haystack' => array('visible-auto','visible-manual','invisible')),
+                array( 'key' => 'style',        'label' => 'Style',                     'haystack' => array_keys($this->styles) ),
+                array( 'key' => 'text_colour',  'label' => 'Style',                     'haystack' => array_keys($this->text_colour) ),
+                array( 'key' => 'background',   'label' => 'Style',                     'haystack' => array_keys($this->background) ),
+                array( 'key' => 'complexity',   'label' => 'Complexity',                'haystack' => array('simple','advanced')),
                 array( 'key' => 'align',        'label' => 'Visible Counter Alignment', 'haystack' => array('left','right','center')),
             );
             
@@ -643,25 +670,31 @@ class WunderCounter extends WunderPluginWidget {
                 }
             }
             elseif ( $params['complexity'] == 'advanced' ) {
+                
                 foreach ( array_keys($this->advanced_counters) as $page_type => $label) {
                     $type = $params['adv_'.$page_type.'_type'];
                     $id   = $params['adv_'.$page_type.'_id'];
-                    if ( !( isset($type) && in_array($type,array_keys($this->types) ) )  ) {
+                    
+                    $options_list = $page_type == 'home' ? $this->home_types : $this->types;
+                    
+                    if ( !( isset($type) && in_array($type,array_keys($options_list) ) )  ) {
                         array_push($msgs,array('msg' => 'Invalid '.$label.' Counter Type.','style' =>'error'));
                         $error++;
                     }
-                    elseif ( in_array($type,array('simple','composed'))) {
+                    elseif ( $page_type != 'home' && in_array($type,array('simple','composed')) && empty($id) ) {
                         array_push($msgs,array( 'msg' => 'You must specify a '.$label.' Counter Name when using the requested counter type.' , 'style'=>'error'));
                         $error++;
                     }
-                    
                 }
+                
             }
             
 
             # save changes on no error            
-            if (!$error)
+            if (!$error) {
                 update_option($this->id_base, $params);
+                array_push($msgs,array('msg' => 'WunderCounter options updated','style'=>'updated'));
+            }
             
             $options = $params;
         }
@@ -794,10 +827,17 @@ class WunderCounter extends WunderPluginWidget {
                     <th scope='row'><?php echo wp_specialchars($label); ?> Type</th>
                     <td>
                         <select name='wundercounter[adv_<?php echo wp_specialchars($id); ?>_type]' id='adv_<?php echo wp_specialchars($id); ?>_type'>
-                            <?php echo $this->make_option_list($this->types,$options['adv_'.$id.'_type']); ?>
+                            <?php
+                                $option_list = $id == 'home'
+                                             ? $this->home_types
+                                             : $this->types;
+
+                                echo $this->make_option_list($this->types,$options['adv_'.$id.'_type']);
+                            ?>
                         </select>
                     </td>
                 </tr>
+                <? if ($id != 'home') : ?>
                 <tr valign='top'>
                     <th scope='row'><?php echo wp_specialchars($label); ?> Counter Name</th>
                     <td><input
@@ -807,6 +847,7 @@ class WunderCounter extends WunderPluginWidget {
                             value='<?php echo wp_specialchars($options['adv_'.$id.'_id']); ?>'
                     ></td>
                 </tr>
+                <?php endif; ?>
                 <?php endforeach; ?>
             </table>
         </div>
@@ -845,39 +886,133 @@ class WunderCounter extends WunderPluginWidget {
             $args['digits'] = 0;
         }
         else {
-            $html .= "<a href='http://www.wundercounter.com/index.cgi?refID='".urlencode($options['username'])."'>";
+            $html .= sprintf("<div style='text-align: %s;'>",wp_specialchars($options['align']))
+                   . sprintf("<a href='http://www.wundercounter.com/index.cgi?refID='%s'>",urlencode($options['username']));
+                   
             $args['digits'] = 5;
             if($options['style'] == 'default' ) {
                 $args['bgcolour']   = $options['background'];
                 $args['fontcolour'] = $options['text_colour'];
             }
             else {
-                $args['']
+                $args['Style'] = $options['style'];
             }
         }
-        
-        
 
-        $link = 'http://www.wundercounter.com/cgi-bin/stats/image.cgi';
-        
-        
-        
         if($options['complexity'] == 'simple') {
             
-                        
+            if($options['simple_type'] == 'base') {
+                $args['page'] = $options['simple_id'];
+            }
+            elseif ($options['simple_type'] == 'url' ) {
+                $args['page'] = $this->url_string();
+            }
+            // invalid type, return nothing
+            else {
+                return '';
+            }
             
             if ($options['type'] != 'invisible') 
-                $html .= "</a>";
+                $html .= "</a></div>";
             return $html;
         }
 
         /* Advanced */
+        $base_id = $options['adv_base_id'];
         
+        $compose_id = '';
+        $what_page = '';
+        
+        if( is_front_page() ) {
+            $what_page = 'home';
+        }
+        elseif( is_page() ) {
+            global $post;
+            $what_page = 'page';
+            $composed = $post->post_name;
+        }
+        elseif( is_archive() ) {
+            $what_page = 'archive';
+            $composed = '';
+            if(is_category()) {
+                $composed = 'category';
+                $category = get_the_category();
+                if (!empty($category))
+                    $composed .= '-' . $category[0]->slug;
+            }
+            elseif(is_tag()) {
+                $compose = 'tag';
+                $tags = get_the_tags();
+                if(!empty($tags))
+                    $composed .= '-' . $tags[0]->slug;
+            }
+            elseif(is_day()) {
+                $compose = 'day-' . get_the_time('Y-m-d');
+            }
+            elseif(is_month()) {
+                $compose = 'month-' . get_the_time('Y-m');
+            }
+            elseif(is_year()) {
+                $compose = 'year-' . get_the_time('Y');
+            }
+        }
+        elseif (is_search()) {
+            $what_page = search;
+            $compose = trim(get_query_var('s'));
+        }
+        elseif (is_single()) {
+            global $post;
+            $what_page = 'post';
+            $compose = $post->post_name;
+        }
+        else {
+            $what_page = 'default';
+        }
+        
+        $type = $options['adv_'.$what_page.'_type'];
+        if($type == 'none')
+            return '';
+        elseif ($type == 'base')
+            $args['page'] = $base_id;
+        elseif ($type == 'simple')
+            $args['page'] = $base_id . '-' . trim($options['adv_'.$what_page.'_id']);
+        elseif (type == 'composed')
+            $args['page'] = $base_id . '-' . trim($options['adv_'.$what_page.'_id']) . (!empty($composed) ? "-{$composed}" : '');
+        elseif ($type == 'url')
+            $args['page'] = $this->url_string();
+
+        $link = 'http://www.wundercounter.com/cgi-bin/stats/image.cgi';
+        if(count($args)) {
+            $query_elements = array();
+            foreach( $args as $key => $val)
+                array_push($query_elements, sprintf("%s=%s",$key,urlencode($val)));
+            $link .= '?' . implode('&', $query_elements );
+        }
+        $html .= sprintf(
+            "<img src='%s' border='0' %s />",
+            $link,
+            ($options['type'] == 'invisible' ? "height='1' width='1'" : '')
+        );
         
         if ($options['type'] != 'invisible') 
-            $html .= "</a>";
+            $html .= "</a></div>";
         return $html;
 
+    }
+    
+    function url_string() {
+        
+        $url = $_SERVER['HTTPS'] ? 'https://' : 'http://';
+        
+        $url .= $_SERVER['HTTP_HOST'];
+        if ( !empty($_SERVER['SERVER_PORT']) && !in_array($_SERVER['SERVER_PORT'],array(80,443)) )
+            $url .= ':' . $_SERVER['SERVER_PORT'];
+        
+        $url .= $_SERVER['REQUEST_URI'];
+        
+        if (!empty($_SERVER['QUERY_STRING']))
+            $url .= '?' . $_SERVER['QUERY_STRING'];
+        return $url;
     }
     
     
@@ -1023,5 +1158,4 @@ add_action( 'widgets_init', array($example_multi,'register') );
 
 */
  
-endif ?>
-
+?>
