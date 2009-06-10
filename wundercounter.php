@@ -446,13 +446,7 @@ class WunderPluginWidget extends WunderPluginBase
 
 class WunderCounter extends WunderPluginWidget {
     
-    var $settings_defaults   = array(
-        'type'      => 'invisible',
-        'style'     => '',
-        'username'  => '',
-        'page'      => '',
-    );
-    
+    // counter styles
     var $styles = array(
         'default'           => 'Default Style',
         'odometer'          => 'Odometer',
@@ -471,14 +465,27 @@ class WunderCounter extends WunderPluginWidget {
         'rosewd'            => 'Rosewood',
     );
 
+    // default counter back and text color options    
+    var $background = array('transparent','black','white','red','gray' );
+    var $text_colour = array('black','white','red','gray' );
+
+    // type options    
     var $types = array(
-        'base'      => 'Use the base id string',
-        'url'       => 'Use the URL of the page',
+        'none'      => 'Do not track this type of page',
+        'base'      => 'Use the BCN as defined above',
+        'simple'    => 'Append the ID below to the BCN',
+        'composed'  => 'Append the ID and additional info to the BCN',
+        'url'       => 'Use the full page URL',
     );
     
-    var $background = explode(' ','transparent black white red gray' );
-    
-    var $text_colour = explode(' ','black white red gray' );
+    var $advanced_counters = array(
+        'home'      => 'Home Page',
+        'page'      => 'Page',
+        'archive'   => 'Archive',
+        'search'    => 'Search Results',
+        'post'      => 'Single Post',
+        'default'   => 'Other Pages',
+    );
     
     function WunderCounter() {
         $this->WunderPluginWidget(
@@ -493,58 +500,59 @@ class WunderCounter extends WunderPluginWidget {
         //add_filter('the_content',array($this,'include_counter'));
         add_action('init',array(&$this,'init'));
         add_action('wp_dashboard_setup',array(&$this,'dashboard_setup'));
+        //register_activation_hook( __FILE__, array(&$this,'activation_hook') );
+
     }
+    
+    //function activation_hook() {
+    //    add_option($this->defaults());
+    //}
     
         
     function init() {
+        // add to to the plugins menu, 'Wundercounter' Menu name, 'Wunder Counter' page title, administrator privleges only (10), in this file, this object and method
         add_submenu_page('plugins.php','WunderCounter', 'WunderCounter', 10, __FILE__, array(&$this,'admin_menu'));
-        
     }
 
     
     function dashboard_setup() {
-        if( (float) get_bloginfo('version') >= 2.7)
-            wp_add_dashboard_widget('wundercounter-dashboard', 'WunderCounter', array(&$this,'dashboard_widget'));
+        //if( (float) get_bloginfo('version') >= 2.7)
+        wp_add_dashboard_widget('wundercounter-dashboard', 'WunderCounter', array(&$this,'dashboard_widget'));
     }
     
     function dashboard_widget() {
-        ?>
-        <p>WunderCounter is up and running.</p>
-        <?php
+        $options = $this->defaults(get_option($this->id_base));
+        if ( empty($options['username']) ) {
+            echo "<p style='color: #C00; font-weight: bold;'>WunderCounter is not setup.</p>";
+        }
+        else {
+            echo "<p>WunderCounter is up and running.</p>";
+        }
     }
     
-    function defaults($options) {
+    function defaults(&$options = array()) {
         
         // make sure we at least have something
-        if     ( !isset($options)    ) { $instance = array(); }
-        elseif ( !is_array($options) ) { $instance = (array) $instance; }
+        if     ( !isset($options)    ) { $options = array(); }
+        elseif ( !is_array($options) ) { $options = (array) $options; }
 
 
         $defaults = array(
             'username'          => '',
             'type'              => 'invisible',
             'style'             => 'default',
-            'complexity'        => 'simple',
+            'align'             => 'right', // right|left|center
             'background'        => 'transparent',
             'text_colour'       => 'black',
-            'simple_type'       => 'single_id', // single_id|track_all
+            'complexity'        => 'simple',
+            'simple_type'       => 'simple', // simple|url
             'simple_id'         => 'my_blog',   // the "tag" under which the hit counter counts when single_id is chosen
-            'adv_base_id'       => 'my_blog',
-            // the order of when these checks are done is important
-            'adv_home_type'     => 'base', // base|single_id|url  is_front_page
-            'adv_home_id'       => 'myblog_home',
-            'adv_page_type'     => 'base', // base|single_id|url|composed
-            'adv_page_id'       => 'myblog_page',
-            'adv_archive_type'  => 'base', //base|single_id|url|composed
-            'adv_archive_id'    => 'myblog_archive',
-            'adv_search_type'   => 'base', // base|single|url|composed
-            'adv_search_id'     => 'myblog_search',
-            'adv_entry_type'    => 'base', //base|single|url|composed
-            'adv_entry_id'      => 'myblog_entry',
-            'adv_default_type'  => 'base', //base|single|url
-            'adv_default_id'    => 'myblog_default'
-            
+            'adv_base_id'       => 'myblog',
         );
+        foreach ( $this->advanced_counters as $page_type => $label ) {
+            $defaults['adv_'.$page_type.'_type'] = 'base';
+            $defaults['adv_'.$page_type.'_id'] = $page_type;
+        }
 
         // any are FALSE set to default (since 0 is invalid for any numerics we're safe)        
         foreach ($defaults as $key => $val ) {
@@ -553,34 +561,132 @@ class WunderCounter extends WunderPluginWidget {
                 $options[$key] = $val;
         }
         
-        // MUST validate the style to ensure we have a safe file name to load
-        if ( !array_key_exists($options['style'],self::$styles) )
-            $options['style'] = $defaults['style'];
-            
-        // make sure we have a integer showposts
-        if (!is_int($options['showposts']))
-            $options['showposts'] = $defaults['showposts'];
-
-        // make sure categories is an array            
-        if (!is_array($options['categories']))
-            $options['categories'] = $defaults['categories'];
-            
-        return $instance;
+        return $options;
     }
     
     
     function admin_page() {
         
-        // get base options
-        $options = get_option($this->id_base);
-        // IF UPDATE
+        $error = 0;
+
+        /**
+         * This array of hashes will be used to display notifications at the top
+         * of the control panel.
+         */
+        $msgs = array(); // array( msg => '', type => 'updated|error' )
         
+
+        // get base options
+        $options = $this->defaults(get_option($this->id_base));
+        // IF UPDATE
+        if ( $_POST['form_submitted'] ) {
+            check_admin_referer( 'wundercounter-settings' ); // security
+
+            /*
+             * wordpress doesn't use the gpc_magic_quotes (yay!)
+             * instead is does it manually (bloody hell)... so just strip
+             * out the slashes. I can't fathom who though this setup
+             * was a good idea.
+             */
+            $_POST = array_map( 'stripslashes_deep', $_POST );
+            
+            $params = $this->defaults((array) $_POST['wundercounter']);
+            
+            // validate
+            if( !( isset($params['username']) || strlen($params['username']) ) ) {
+                array_push($msgs,array('msg' => 'You must provide your WunderCounter username for this plugin to work.','style' =>'error'));
+                $error++;
+            }
+            
+            // the follow loop are for security. None of them should be a problem unless someone
+            // gets stupid and messes directly with the form submission
+            // keys: key => the posted form field
+            //       label => english label of the field
+            //       haystack => array of valid values for this field
+            $to_validate = array(
+                array( 'key' => 'type',         'label' => 'Type of Counter',   'haystack' => array('visible-auto','visible-manual','invisible')),
+                array( 'key' => 'style',        'label' => 'Style',             'haystack' => array_keys($this->styles) ),
+                array( 'key' => 'text_colour',  'label' => 'Style',             'haystack' => array_keys($this->text_colour) ),
+                array( 'key' => 'background',   'label' => 'Style',             'haystack' => array_keys($this->background) ),
+                array( 'key' => 'complexity',   'label' => 'Complexity',        'haystack' => array('simple','advanced')),
+                array( 'key' => 'align',        'label' => 'Visible Counter Alignment', 'haystack' => array('left','right','center')),
+            );
+            
+            foreach ( $to_validate as $field ) {
+                $param = $params[$field['key']];
+                if( !in_array($param,$field['haystack']) ) {
+                    array_push($msgs,array('msg' => 'Invalid '.$field['label'].'.','style' =>'error'));
+                    $error++;
+                }
+            }
+
+            // ensure text_colour and background_colour cannot be the same value            
+            if($params['type'] != 'invisible' && $params['background'] == $params['text_colour']) {
+                array_push($msgs,array('msg' => 'The Text Color and Background Color may not be the same.','style'=>'error'));
+                $error++;
+            }
+            
+            
+            // now validate the stuff according to complexity settings
+            if( $params['complexity'] == 'simple' ) {
+                if( !isset($params['simple_type'] ) || !in_array($params['simple_type'],array('base','url') ) ) {
+                    array_push($msgs,array('msg' => 'Invalid Counter Type.','style' =>'error'));
+                    $error++;
+                    
+                }
+                elseif ($params['simple_type'] == 'base') {
+                    if( !isset($params['simple_id'] ) || strlen($params['simple_id']) == 0 ) {
+                        array_push($msgs,array('msg' => 'You must specify a counter name when choosing to use a single counter.','style' =>'error'));
+                        $error++;
+                    }
+
+                }
+            }
+            elseif ( $params['complexity'] == 'advanced' ) {
+                foreach ( array_keys($this->advanced_counters) as $page_type => $label) {
+                    $type = $params['adv_'.$page_type.'_type'];
+                    $id   = $params['adv_'.$page_type.'_id'];
+                    if ( !( isset($type) && in_array($type,array_keys($this->types) ) )  ) {
+                        array_push($msgs,array('msg' => 'Invalid '.$label.' Counter Type.','style' =>'error'));
+                        $error++;
+                    }
+                    elseif ( in_array($type,array('simple','composed'))) {
+                        array_push($msgs,array( 'msg' => 'You must specify a '.$label.' Counter Name when using the requested counter type.' , 'style'=>'error'));
+                        $error++;
+                    }
+                    
+                }
+            }
+            
+
+            # save changes on no error            
+            if (!$error)
+                update_option($this->id_base, $params);
+            
+            $options = $params;
+        }
         //DISPLAY
         ?>
 <div class="wrap">
     <h2>WunderCounter Settings</h2>
     
-    <form method="post" action="options.php">
+    <?php
+        if( $error ) {
+            if ( $error > 1 )
+                echo "<div class='error'><p><strong>There were ", $error, ' errors.</strong></p></div>';
+            else
+                echo "<div class='error'><p><strong>There was 1 error.</strong></p></div>";
+        }
+        
+        if ( count($msgs) > 0 ) {
+            foreach ($msgs as $msg ) {
+                echo "<div class='".$msg['type']."'><p>".wp_filter_kses($msg['msg'])."</p></div>";
+            }
+        }
+    ?>    
+    <form method="post" action="<?php echo str_replace( '%7E', '~', $_SERVER['REQUEST_URI']); ?>">
+        <input type="hidden" name="form_submitted" value="1" />
+
         <?php wp_nonce_field('wundercounter-settings'); ?>
     
         <table class="form-table" style='width: auto;'>
@@ -588,81 +694,120 @@ class WunderCounter extends WunderPluginWidget {
             <tr valign="top">
                 <th scope="row">Username:<br /><span style='font-size: .8em'>(this is your WunderCounter user name; this plugin will not function without a username)</span></th>
                 <td colspan='2'>
-                    <input type='text' name='username' id='username'
+                    <input type='text' name='wundercounter[username]' id='username' />
                 </td>
             </tr>
                     
             <tr valign="top">
                 <th scope="row" rowspan='3'>Type of Counter:</th>
-                <td>
-                    <input type='radio' name='type' id='type1' value='invisible' />
-                </td>
-                <td>
-                    Invisible Counter
-                </td>
+                <td><input type='radio' name='wundercounter[type]' id='type1' value='invisible' /></td>
+                <td>Invisible Counter</td>
             </tr>
             <tr valign='top'>
-                <td>
-                    <input type='radio' name='type' id='type2' value='visible-auto' />
-                </td>
+                <td><input type='radio' name='wundercounter[type]' id='type2' value='visible-auto' /></td>
                 <td>
                     Visible Counter (automatic)<br />
                     <span style='font-size: .8em;'>Counter is automatically inserted at the end of each page just above the footer</span>
                 </td>
             </tr>
             <tr valign='top'>
-                <td>
-                    <input type='radio' name='type' id='type3' value='visible-manual' />
-                </td>
+                <td><input type='radio' name='wundercounter[type]' id='type3' value='visible-manual' /></td>
                 <td>
                     Visible Counter (manual)<br />
-                    <span style='font-size: .8em;'>You must place the WunderCounter Widget into the sidebars manually.</span>
+                    <span style='font-size: .8em;'>You must place the WunderCounter Widget into the sidebar(s) manually.</span>
                 </td>
             </tr>
 
             <tr valign="top">
-                <th scope="row">Style:<br /><span style='font-size: .8em'>(only applies when using the 'default' style)</span></th>
+                <th scope="row">Style:<br /><span style='font-size: .8em'>(only applies when using one of the Visible counters)</span></th>
                 <td colspan='2'>
-                    <select name='background' id='background'>
-                        <?php echo $this->make_option_list($this->background,''); ?>
+                    <select name='wundercounter[style]' id='style'>
+                        <?php echo $this->make_option_list($this->styles,$options['style']); ?>
+                    </select>
+                </td>
+            </tr>
+
+            <tr valign="top">
+                <th scope="row">Visual Counter Alignment<br /><span style='font-size: .8em'>(only applies when using one of the Visible counters)</span></th>
+                <td colspan='2'>
+                    <select name='wundercounter[align]' id='align'>
+                        <?php echo $this->make_option_list(array( 'center' => 'Center', 'left' => 'Left', 'right' => 'Right'),$options['align']); ?>
+                    </select>
+                </td>
+            </tr>
+
+            <tr valign='top'>
+                <th scope='row'>Text Color</th>
+                <td colspan='2'>
+                    <select name='wundercounter[text_colour]' id='text_colour'>
+                        <?php echo $this->make_option_list($this->text_colour,$options['text_colour']); ?>
+                    </select>
+                </td>
+            </tr>
+    
+            <tr valign="top">
+                <th scope="row">Background Color<br /><span style='font-size: .8em'>(only applies when using the 'Default' style)</span></th>
+                <td colspan='2'>
+                    <select name='wundercounter[background]' id='background'>
+                        <?php echo $this->make_option_list($this->background,$options['background']); ?>
                     </select>
                 </td>
             </tr>
             
-            <tr valign='top' id='background-color-row'>
-                <th scope='row'>Background Color</th>
-                <td colspan='2'>
-                    <select name='text_colour' id='text_colour'>
-                        <?php echo $this->make_option_list($this->text_colour,''); ?>
-                    </select>
-                </td>
-            </tr>
-    
             <tr valign='top'>
                 <th rowspan='2' scope='row'>Settings Level:</th>
-                <td><input type='radio' name='complexity' value='simple'></td>
+                <td><input type='radio' name='wundercounter[complexity]' value='simple'></td>
                 <td>Simple</td>
             </tr>
     
             <tr valign='top'>
-                <td><input type='radio' name='complexity' value='advanced'></td>
+                <td><input type='radio' name='wundercounter[complexity]' value='advanced'></td>
                 <td>Advanced</td>
             </tr>
     
         </table>
 
-        <div id='wundercounter-simple'>    
+        <div id='wundercounter-simple' style='display:none;'>    
             <table class="form-table" style='width: auto;'>
-                <th scope='row'>Type</th>
-                <td>
-                    <select name='simple_type' id='simple_type'>
-                        <?php echo $this->make_option_list(array); ?>
-                    </select>
-                </td>
+                <tr valign='top'>
+                    <th scope='row'>Counter Type</th>
+                    <td>
+                        <select name='wundercounter[simple_type]' id='simple_type'>
+                            <?php echo $this->make_option_list(array('base' => 'Use a single counter', 'url' => 'Track all pages' ),$options['simple_type']); ?>
+                        </select>
+                    </td>
+                </tr>
+                <tr valign='top'>
+                    <th scope='row'>Counter Name</th>
+                    <td><input type='text' name='wundercounter[simple_id]' id='simple_id' value='<?php echo wp_specialchars($options['simple_id']); ?>'></td>
+                </tr>
             </table>
         </div>
-        <div id='wundercounter-advanced'>
+        <div id='wundercounter-advanced' style='display:none;'>
             <table class="form-table" style='width: auto;'>
+                <tr valign='top'>
+                    <th scope='row'>Base Counter Name (BCN)</th>
+                    <td><input type='text' name='wundercounter[adv_base_id]' id='adv_base_id' value='<?php echo wp_specialchars($options['adv_base_id']); ?>'></td>
+                </tr>
+                <?php foreach ( $this->advanced_counters as $id => $label) : ?>
+                <tr valign='top'>
+                    <th scope='row'><?php echo wp_specialchars($label); ?> Type</th>
+                    <td>
+                        <select name='wundercounter[adv_<?php echo wp_specialchars($id); ?>_type]' id='adv_<?php echo wp_specialchars($id); ?>_type'>
+                            <?php echo $this->make_option_list($this->types,$options['adv_'.$id.'_type']); ?>
+                        </select>
+                    </td>
+                </tr>
+                <tr valign='top'>
+                    <th scope='row'><?php echo wp_specialchars($label); ?> Counter Name</th>
+                    <td><input
+                            type='text'
+                            name='wundercounter[adv_<?php echo wp_specialchars($id); ?>_id]'
+                            id='adv_<?php echo wp_specialchars($id); ?>_id'
+                            value='<?php echo wp_specialchars($options['adv_'.$id.'_id']); ?>'
+                    ></td>
+                </tr>
+                <?php endforeach; ?>
             </table>
         </div>
         
@@ -680,6 +825,62 @@ class WunderCounter extends WunderPluginWidget {
         <?php
     }
     
+    function build_counter(&$options) {
+        
+        $options = $this->defaults($options);
+
+        // useless without a username
+        if ( empty($options['username']) )
+            return '';
+        
+        $html = '';
+
+        // these are the args we're going to pass to the <img> link
+        $args = array( 'user' => $options['username'] );
+
+        // as far as I can tell, digits is really a boolean because the
+        // number seems to not affect the outcome
+
+        if ($options['type'] == 'invisible') {
+            $args['digits'] = 0;
+        }
+        else {
+            $html .= "<a href='http://www.wundercounter.com/index.cgi?refID='".urlencode($options['username'])."'>";
+            $args['digits'] = 5;
+            if($options['style'] == 'default' ) {
+                $args['bgcolour']   = $options['background'];
+                $args['fontcolour'] = $options['text_colour'];
+            }
+            else {
+                $args['']
+            }
+        }
+        
+        
+
+        $link = 'http://www.wundercounter.com/cgi-bin/stats/image.cgi';
+        
+        
+        
+        if($options['complexity'] == 'simple') {
+            
+                        
+            
+            if ($options['type'] != 'invisible') 
+                $html .= "</a>";
+            return $html;
+        }
+
+        /* Advanced */
+        
+        
+        if ($options['type'] != 'invisible') 
+            $html .= "</a>";
+        return $html;
+
+    }
+    
+    
     /***************************
      * Widget based code
      */
@@ -688,10 +889,17 @@ class WunderCounter extends WunderPluginWidget {
     function widget($args,$instance)
     {
         extract($args,EXTR_SKIP);
-        echo $before_widget;
-        echo   $before_title . $instance['title'] . $after_title;
-        //echo   $instance['content'];
-        echo $after_widget;
+        
+        # get the config options
+        $options = $this->defaults(get_options($this->id_base));
+        $html    = $this->build_counter(&$options);
+        
+        if (!empty($html)) {
+            echo $before_widget;
+            echo $before_title . $instance['title'] . $after_title;
+            echo $html;
+            echo $after_widget;
+        }
     }
 
 
@@ -704,7 +912,6 @@ class WunderCounter extends WunderPluginWidget {
             return false;
         $instance = $old_instance;
         $instance['title']      = wp_specialchars( $new_instance['title'] );
-        //$instance['content']    = wp_specialchars( $new_instance['content'] );
         return $instance;
     }
 
@@ -724,14 +931,6 @@ class WunderCounter extends WunderPluginWidget {
        name="<?php echo $this->get_field_name('title') ?>" type="text"
        value="<?php echo htmlspecialchars($instance['title'],ENT_QUOTES) ?>" />
      </label>
-    <!--
-     <label for="<?php echo $this->get_field_id('content') ?>">
-      <?php _e('Content:'); ?>
-      <input class="widefat" id="<?php echo $this->get_field_id('content') ?>"
-       name="<?php echo $this->get_field_name('content') ?>" type="text"
-       value="<?php echo htmlspecialchars($instance['content'],ENT_QUOTES) ?>" />
-     </label>
-    -->
      <input type="hidden" id="<?php echo $this->get_field_id('submit') ?>"
       name="<?php echo $this->get_field_name('submit') ?>" value="1" />
 
