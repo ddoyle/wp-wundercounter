@@ -508,14 +508,19 @@ class WunderCounter extends WunderPluginWidget {
     
     function register_hooks() {
         //add_filter('the_content',array($this,'include_counter'));
-        add_action('init',array(&$this,'init'));
-        
+        //add_action('init',array(&$this,'init'));
+        add_action( 'admin_menu',array($this,'register_admin_menu'));
+
         // run dashboard setup
         add_action('wp_dashboard_setup',array(&$this,'dashboard_setup'));
         add_action('template_redirect', array(&$this,'add_counter_to_content_hook'));
         //register_activation_hook( __FILE__, array(&$this,'activation_hook') );
 
     }
+    function register_admin_menu() {
+        add_submenu_page('edit.php','WunderCounter','WunderCounter',10,__FILE__,array($this,'admin_page'));
+    }
+    
     
     // only add the filter if it's invisible or visible-auto
     function add_counter_to_content_hook() {
@@ -533,10 +538,10 @@ class WunderCounter extends WunderPluginWidget {
     //}
     
         
-    function init() {
-        // add to to the plugins menu, 'Wundercounter' Menu name, 'Wunder Counter' page title, administrator privleges only (10), in this file, this object and method
-        add_submenu_page('plugins.php','WunderCounter', 'WunderCounter', 10, __FILE__, array(&$this,'admin_menu'));
-    }
+    //function init() {
+    //    // add to to the plugins menu, 'Wundercounter' Menu name, 'Wunder Counter' page title, administrator privleges only (10), in this file, this object and method
+    //    add_submenu_page('plugins.php','WunderCounter', 'WunderCounter', 10, __FILE__, array(&$this,'admin_page'));
+    //}
 
     // add dashboard widget
     function dashboard_setup() {
