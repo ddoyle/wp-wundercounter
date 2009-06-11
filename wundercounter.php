@@ -507,7 +507,7 @@ class WunderCounter extends WunderPluginWidget {
     }
     
     function register_hooks() {
-        //add_filter('the_content',array($this,'include_counter'));
+        add_filter('the_content',array($this,'include_counter'));
         //add_action('init',array(&$this,'init'));
         add_action( 'admin_menu',array($this,'register_admin_menu'));
 
@@ -518,7 +518,7 @@ class WunderCounter extends WunderPluginWidget {
 
     }
     function register_admin_menu() {
-        add_submenu_page('edit.php','WunderCounter','WunderCounter',10,__FILE__,array($this,'admin_page'));
+        add_submenu_page('plugins.php','WunderCounter','WunderCounter',10,__FILE__,array($this,'admin_page'));
     }
     
     
@@ -1162,5 +1162,7 @@ $example_multi = new ExampleMultiWidget();
 add_action( 'widgets_init', array($example_multi,'register') );
 
 */
+ 
+my $WunderCounter = new WunderCounter();
  
 ?>
