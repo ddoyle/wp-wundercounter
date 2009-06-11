@@ -64,7 +64,7 @@ class WunderPluginBase {
         
         $this->plugin_url = WP_PLUGIN_URL.'/'.str_replace(basename( $plugin_file ),"",plugin_basename( $plugin_file )); ;
         $this->plugin_dir = WP_PLUGIN_DIR . '/' . str_replace(basename( $plugin_file ),"",plugin_basename( $plugin_file ));
-        $this->plugin_dir = preg_replace('/\\/','/',$this->plugin_dir); # os-compat
+        $this->plugin_dir = preg_replace('/\\\\/','/',$this->plugin_dir); # os-compat
         
         // if you defined a register_hooks method in a subclass we'll run it
         // on instantiation
