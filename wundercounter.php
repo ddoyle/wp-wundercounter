@@ -1162,7 +1162,7 @@ $example_multi = new ExampleMultiWidget();
 add_action( 'widgets_init', array($example_multi,'register') );
 
 */
- 
-my $WunderCounter = new WunderCounter();
+
+$WunderCounter = new WunderCounter();
  
 ?>
