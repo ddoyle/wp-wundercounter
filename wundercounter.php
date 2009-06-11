@@ -572,7 +572,7 @@ class WunderCounter extends WunderPluginWidget {
     }
     
     // create defaults
-    function defaults(&$options = array()) {
+    function defaults($options = array()) {
         
         // make sure we at least have something
         if     ( !isset($options)    ) { $options = array(); }
