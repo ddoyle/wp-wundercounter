@@ -129,7 +129,7 @@ class WunderPluginBase {
         return (is_array($array) && 0 !== count(array_diff_key($array, array_keys(array_keys($array)))));
     }
     
-    function make_option_list(&$items = array(), $selected = '') {
+    function make_option_list($items = array(), $selected = '') {
         if(!is_array($items) || !count($items) || !is_string($selected))
             return '';
         
@@ -507,19 +507,30 @@ class WunderCounter extends WunderPluginWidget {
     }
     
     function register_hooks() {
-        add_filter('the_content',array($this,'include_counter'));
+        
         //add_action('init',array(&$this,'init'));
+        
+        // register the admine menu
         add_action( 'admin_menu',array($this,'register_admin_menu'));
 
         // run dashboard setup
         add_action('wp_dashboard_setup',array(&$this,'dashboard_setup'));
+        
+        // add the action to add the counter after post bodies automatically
         add_action('template_redirect', array(&$this,'add_counter_to_content_hook'));
         //register_activation_hook( __FILE__, array(&$this,'activation_hook') );
 
     }
+    
     function register_admin_menu() {
-        add_submenu_page('plugins.php','WunderCounter','WunderCounter',10,__FILE__,array($this,'admin_page'));
+        $page = add_submenu_page('plugins.php','WunderCounter','WunderCounter',10,__FILE__,array($this,'admin_page'));
+        add_action("admin_print_scripts-{$page}", array(&$this,'admin_print_scripts'));
     }
+    function admin_print_scripts() {
+        wp_enqueue_scripts('jquery');
+        wp_enqueue_scripts('wundercounter-admin',$this->plugin_url('js/admin.js'),array('jquery'));
+    }
+    
     
     
     // only add the filter if it's invisible or visible-auto
