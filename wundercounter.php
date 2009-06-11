@@ -885,6 +885,11 @@ class WunderCounter extends WunderPluginWidget {
     
     function _make_link($args) {
         $html = '';
+        
+        // log the referrer
+        if(!empty($_SERVER["HTTP_REFERER"]))
+            $args['reF'] = $_SERVER["HTTP_REFERER"];
+            
         $link = 'http://www.wundercounter.com/cgi-bin/stats/image.cgi';
         if(count($args)) {
             $query_elements = array();
