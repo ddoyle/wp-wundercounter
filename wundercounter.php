@@ -527,8 +527,8 @@ class WunderCounter extends WunderPluginWidget {
         add_action("admin_print_scripts-{$page}", array(&$this,'admin_print_scripts'));
     }
     function admin_print_scripts() {
-        wp_enqueue_scripts('jquery');
-        wp_enqueue_scripts('wundercounter-admin',$this->plugin_url('js/admin.js'),array('jquery'));
+        wp_enqueue_script('jquery');
+        wp_enqueue_script('wundercounter-admin',$this->plugin_url('js/admin.js'),array('jquery'));
     }
     
     
