@@ -537,11 +537,12 @@ class WunderCounter extends WunderPluginWidget {
     function add_counter_to_content_hook() {
         $options = $this->defaults(get_option($this->id_base));
         if(in_array($options['type'],array('invisible','visible-auto')))
-            add_filter('the_content',array(&$this,'add_counter_to_content'));
+            add_filter('get_footer',array(&$this,'add_counter_to_content'));
     }
     // append the counter
-    function add_counter_to_content($content) {
-        return $content . $this->build_counter(get_option($this->id_base));
+    function add_counter_to_content() {
+        echo $this->build_counter(get_option($this->id_base));
+        #return $content . $this->build_counter(get_option($this->id_base));
     }
     
     //function activation_hook() {
@@ -882,6 +883,25 @@ class WunderCounter extends WunderPluginWidget {
         <?php
     }
     
+    function _make_link($args) {
+        $html = '';
+        $link = 'http://www.wundercounter.com/cgi-bin/stats/image.cgi';
+        if(count($args)) {
+            $query_elements = array();
+            foreach( $args as $key => $val)
+                array_push($query_elements, sprintf("%s=%s",$key,urlencode($val)));
+            $link .= '?' . implode('&', $query_elements );
+        }
+        
+        $html .= sprintf(
+            "<img src='%s' border='0' %s />",
+            $link,
+            ($options['type'] == 'invisible' ? "height='1' width='1'" : '')
+        );
+        return $html;
+
+    }
+    
     function build_counter(&$options) {
         
         $options = $this->defaults($options);
@@ -922,11 +942,15 @@ class WunderCounter extends WunderPluginWidget {
             }
             elseif ($options['simple_type'] == 'url' ) {
                 $args['page'] = $this->url_string();
+                $args['total'] = 'Yes';
             }
             // invalid type, return nothing
             else {
                 return '';
             }
+            
+            $html .= $this->_make_link($args);
+
             
             if ($options['type'] != 'invisible') 
                 $html .= "</a></div>";
@@ -997,18 +1021,17 @@ class WunderCounter extends WunderPluginWidget {
         elseif ($type == 'url')
             $args['page'] = $this->url_string();
 
-        $link = 'http://www.wundercounter.com/cgi-bin/stats/image.cgi';
-        if(count($args)) {
-            $query_elements = array();
-            foreach( $args as $key => $val)
-                array_push($query_elements, sprintf("%s=%s",$key,urlencode($val)));
-            $link .= '?' . implode('&', $query_elements );
+        // append the "total=Yes" if any of the advanced counters use something
+        // other than 'base' or 'none'
+        foreach( array_keys($this->advanced_counters) as $page_id) {
+            $field = 'adv_' . $page_id . '_type';
+            if( !in_array($options[$field],array('base','none'))) {
+                $args['total'] = 'Yes';
+                break;
+            }
         }
-        $html .= sprintf(
-            "<img src='%s' border='0' %s />",
-            $link,
-            ($options['type'] == 'invisible' ? "height='1' width='1'" : '')
-        );
+
+        $html .= $this->_make_link($args);
         
         if ($options['type'] != 'invisible') 
             $html .= "</a></div>";
