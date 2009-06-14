@@ -98,6 +98,7 @@ class WunderPluginBase {
         return $url;
     }
     
+    // get a file path
     function plugin_dir($path = '') {
         if(!isset($path))
             $path = '';
@@ -127,6 +128,8 @@ class WunderPluginBase {
         return (is_array($array) && 0 !== count(array_diff_key($array, array_keys(array_keys($array)))));
     }
     
+    
+    // generate an <option> list with an array and a selected value
     function make_option_list($items = array(), $selected = '') {
         if(!is_array($items) || !count($items) || !is_string($selected))
             return '';
@@ -528,13 +531,12 @@ class WunderCounter extends WunderPluginWidget {
         $page = add_submenu_page('plugins.php','WunderCounter','WunderCounter',10,__FILE__,array($this,'admin_page'));
         add_action("admin_print_scripts-{$page}", array(&$this,'admin_print_scripts'));
     }
+    // add custom js to the admin page
     function admin_print_scripts() {
         wp_enqueue_script('jquery');
         wp_enqueue_script('wundercounter-admin',$this->plugin_url('js/admin.js'),array('jquery'));
     }
-    
-    
-    
+        
     // only add the filter if it's invisible or visible-auto
     function add_counter_to_content_hook() {
         $options = $this->defaults(get_option($this->id_base));
@@ -543,6 +545,7 @@ class WunderCounter extends WunderPluginWidget {
             add_filter('wp_footer',array(&$this,'add_counter_to_content'));
             // get_footer, wp_footer
     }
+    
     // append the counter
     function add_counter_to_content() {
         echo $this->build_counter(get_option($this->id_base));
@@ -934,6 +937,7 @@ class WunderCounter extends WunderPluginWidget {
             }
         }
 
+        // return the html for the simple setup
         if($options['complexity'] == 'simple') {
             
             $args['page'] = $options['simple_id'];
@@ -988,6 +992,8 @@ class WunderCounter extends WunderPluginWidget {
 
     }
     
+    // build the url for full url tracking
+    // currently not used
     function url_string() {
         
         $url = $_SERVER['HTTPS'] ? 'https://' : 'http://';
@@ -1063,89 +1069,6 @@ class WunderCounter extends WunderPluginWidget {
     }
     
 }
-
-/*
-
-//
-// Example MultiWidget. Use this as a template for your own.
-//
-
-class ExampleMultiWidget extends MultiWidget
-{
-  function ExampleMultiWidget()
-  {
-    $this->MultiWidget(
-        'example-multi', // id_base
-        'ExampleMulti', // name
-        array('description'=>__('Widget which allows multiple instances'))
-      );
-  }
-
-
-  // Echo the actual widget content. Subclasses should over-ride this function
-  // to generate their widget code.
-  function widget($args,$instance)
-  {
-    extract($args,EXTR_SKIP);
-    echo $before_widget;
-    echo   $before_title . $instance['title'] . $after_title;
-    echo   $instance['content'];
-    echo $after_widget;
-  }
-
-
-  // Update a particular instance.
-  // This function should check that $new_instance is set correctly.
-  // The newly calculated value of $instance should be returned.
-  function control_update($new_instance, $old_instance)
-  {
-    if( !isset($new_instance['title']) ) // user clicked cancel
-        return false;
-    $instance = $old_instance;
-    $instance['title'] = wp_specialchars( $new_instance['title'] );
-    $instance['content'] = wp_specialchars( $new_instance['content'] );
-    return $instance;
-  }
-
-
-  // Echo a control form for the current instance.
-  // The form has inputs with names like widget-ID_BASE[$number][FIELD_NAME]
-  // so that all data for that instance of the widget are stored in one
-  // $_POST variable: $_POST['widget-ID_BASE'][$number]
-  function control_form($instance)
-  {
-?>
-    <p>
-
-     <label for="<?php echo $this->get_field_id('title') ?>">
-      <?php _e('Title:'); ?>
-      <input class="widefat" id="<?php echo $this->get_field_id('title') ?>"
-       name="<?php echo $this->get_field_name('title') ?>" type="text"
-       value="<?php echo htmlspecialchars($instance['title'],ENT_QUOTES) ?>" />
-     </label>
-
-     <label for="<?php echo $this->get_field_id('content') ?>">
-      <?php _e('Content:'); ?>
-      <input class="widefat" id="<?php echo $this->get_field_id('content') ?>"
-       name="<?php echo $this->get_field_name('content') ?>" type="text"
-       value="<?php echo htmlspecialchars($instance['content'],ENT_QUOTES) ?>" />
-     </label>
-
-     <input type="hidden" id="<?php echo $this->get_field_id('submit') ?>"
-      name="<?php echo $this->get_field_name('submit') ?>" value="1" />
-
-    </p>
-<?php
-  }
-
-} // end class ExampleMultiWidget
-
-
-// Finally create an object for the widget-type and register it.
-$example_multi = new ExampleMultiWidget();
-add_action( 'widgets_init', array($example_multi,'register') );
-
-*/
 
 $WunderCounter = new WunderCounter();
 
