@@ -50,14 +50,14 @@ class WunderPluginBase {
     // if your subclass has a method "register_hooks" it'll be auto-run
     // on instantiation.  We'll amend this in the PluginWidget class to also
     // automatically register the widget
-    var $run_on_construct = array('register_hooks');
+    protected $run_on_construct = array('register_hooks');
     
     /**
      * Constructor
      *
      * @param   string      $plugin_path    The pathname to the plugin (just pass __FILE__ to the constructor)
      */
-    function WunderPluginBase ($plugin_file = '') {
+    function __construct($plugin_file = '') {
         
         if(!strlen($plugin_file))
             die(__CLASS__ . ' requires a plugin file; just pass __FILE__');
@@ -68,11 +68,9 @@ class WunderPluginBase {
         
         // if you defined a register_hooks method in a subclass we'll run it
         // on instantiation
-
         foreach ( $this->run_on_construct as $method ) {
             if( method_exists($this,$method) ) {
                 call_user_func(array($this, $method)); // equivalent to $this->$method()
-                
             }
         }
         
@@ -149,9 +147,13 @@ class WunderPluginBase {
         }
         return $html;        
     }
+    
+    function _dumper( $struct ) {
+        return '<pre>' . wp_specialchars(print_r($struct,TRUE)) . '</pre>';
+    }
 }
 
-endif;
+endif; // end WunderPluginBase
 
 /** This class wraps up lots of secret knowledge about how to make
  *  Wordpress "multi" widgets. These are widgets that allow more than one
@@ -172,8 +174,8 @@ class WunderPluginWidget extends WunderPluginBase
     var $widget_options;  ///< Option array passed to wp_register_sidebar_widget()
     var $control_options; ///< Option array passed to wp_register_widget_control()
     
-    var $number =false; ///< Unique ID number of the current instance.
-    var $id =false; ///< Unique ID string of the current instance (id_base-number)
+    var $number = false; ///< Unique ID number of the current instance.
+    var $id     = false; ///< Unique ID string of the current instance (id_base-number)
 
     /*
      * list of methods to run on construct
@@ -182,8 +184,8 @@ class WunderPluginWidget extends WunderPluginBase
      * as per a non-widgetized plugin, register hooks is where you put calls to
      * other add_hook and add_filter items
      */
-    var $run_on_construct = array('_widgits_init','register_hooks');
 
+    protected $run_on_construct = array('_widgets_init','register_hooks');
 
     //
     // Member functions that you must over-ride.
@@ -192,7 +194,7 @@ class WunderPluginWidget extends WunderPluginBase
      *  to generate their widget code. */
     function widget($args,$instance)
     {
-      die('function MultiWidget::widget() must be over-ridden in a sub-class.');
+      die('function '.__CLASS__.'::widget() must be over-ridden in a sub-class.');
     }
 
 
@@ -201,14 +203,14 @@ class WunderPluginWidget extends WunderPluginBase
      *  The newly calculated value of $instance should be returned. */
     function control_update($new_instance, $old_instance)
     {
-        die('function MultiWidget::control_update() must be over-ridden in a sub-class.');
+        die('function '.__CLASS__.'::control_update() must be over-ridden in a sub-class.');
     }
 
 
     /** Echo a control form for the current instance. */
     function control_form($instance)
     {
-        die('function MultiWidget::control_form() must be over-ridden in a sub-class.');
+        die('function '.__CLASS__.'::control_form() must be over-ridden in a sub-class.');
     }
 
 
@@ -223,31 +225,25 @@ class WunderPluginWidget extends WunderPluginBase
     *   - width
     *   - height
     */
-    function WunderPluginWidget(
+    function __construct(
         $plugin_pathname, // the full pathname of the main plugin file (just pass __file__)
         $id_base,         // a unique id by which this widget will be known
         $name,            // English name of the Widget
         $widget_options = array(), // usually just 'description'
         $control_options = array() // widget control box special stuff (often just height and width)
     ) {
-        $this->id_base      = $id_base; // a unique id for the plugin
-        $this->name         = $name; // name of the plugin as shown on the plugins screen
-        $this->option_name  = 'multiwidget_'.$id_base; // becomes the stored key in the options database for this widget
+        $this->id_base          = $id_base; // a unique id for the plugin
+        $this->name             = $name; // name of the plugin as shown on the plugins screen
+        $this->option_name      = 'multiwidget_'.$id_base; // becomes the stored key in the options database for this widget
+        $this->widget_options   = wp_parse_args( $widget_options, array('classname'=>$this->option_name) );
+        $this->control_options  = wp_parse_args( $control_options, array('id_base'=>$this->id_base) );
         
-        $this->widget_options = wp_parse_args(
-            $widget_options,
-            array('classname'=>$this->option_name)
-        );
-        $this->control_options = wp_parse_args(
-            $control_options,
-            array('id_base'=>$this->id_base)
-        );
         // Set true when we update the data after a POST submit - makes sure we
         // don't do it twice.
         $this->updated = false;
         
-        //parent::WunderPluginBase($plugin_pathname);
-        $this->WunderPluginBase($plugin_pathname);
+        parent::__construct($plugin_pathname);
+        //$this->WunderPluginBase($plugin_pathname);
     
     }
     
@@ -445,7 +441,7 @@ class WunderPluginWidget extends WunderPluginBase
         );
     }
 
-} // end class MultiWidget
+} // end class WunderPluginWidget
 
 endif;
 
@@ -479,13 +475,11 @@ class WunderCounter extends WunderPluginWidget {
         'none'      => 'Do not track this type of page',
         'base'      => 'Use the BCN as defined above',
         'simple'    => 'Append the ID below to the BCN',
-        'composed'  => 'Append the ID and additional info to the BCN',
-        'url'       => 'Use the full page URL',
+        //'composed'  => 'Append the ID and additional info to the BCN',
     );
     var $home_types = array(
         'none'      => 'Do not track this type of page',
         'base'      => 'Use the BCN as defined above',
-        'url'       => 'Use the full page URL',
     );
     
     var $advanced_counters = array(
@@ -497,12 +491,12 @@ class WunderCounter extends WunderPluginWidget {
         'default'   => 'Other Pages',
     );
     
-    function WunderCounter() {
-        $this->WunderPluginWidget(
+    function __construct() {
+        parent::__construct(
             __FILE__,
             'wundercounter',
             'WunderCounter',
-            array('description' => __('Incorporates WonderCounter into your Wordpress Site including counter widget.'))
+            array('description' => __('Incorporates WonderCounter into your Wordpress Site.'))
         );
     }
     
@@ -588,12 +582,11 @@ class WunderCounter extends WunderPluginWidget {
             'background'        => 'transparent',
             'text_colour'       => 'black',
             'complexity'        => 'simple',
-            'simple_type'       => 'simple', // simple|url
             'simple_id'         => 'my_blog',   // the "tag" under which the hit counter counts when single_id is chosen
             'adv_base_id'       => 'my_blog',
         );
         foreach ( $this->advanced_counters as $page_type => $label ) {
-            $defaults['adv_'.$page_type.'_type'] = 'base';
+            $defaults['adv_'.$page_type] = 'base';
             if($page_type != 'home')
                 $defaults['adv_'.$page_type.'_id'] = $page_type;
         }
@@ -673,23 +666,15 @@ class WunderCounter extends WunderPluginWidget {
             
             // now validate the stuff according to complexity settings
             if( $params['complexity'] == 'simple' ) {
-                if( !isset($params['simple_type'] ) || !in_array($params['simple_type'],array('base','url') ) ) {
-                    array_push($msgs,array('msg' => 'Invalid Counter Type.','type' =>'error'));
+                if( !isset($params['simple_id'] ) || strlen($params['simple_id']) == 0 ) {
+                    array_push($msgs,array('msg' => 'You must specify a counter name.','type' =>'error'));
                     $error++;
-                    
-                }
-                elseif ($params['simple_type'] == 'base') {
-                    if( !isset($params['simple_id'] ) || strlen($params['simple_id']) == 0 ) {
-                        array_push($msgs,array('msg' => 'You must specify a counter name when choosing to use a single counter.','type' =>'error'));
-                        $error++;
-                    }
-
                 }
             }
             elseif ( $params['complexity'] == 'advanced' ) {
                 
                 foreach ( $this->advanced_counters as $page_type => $label) {
-                    $type = $params['adv_'.$page_type.'_type'];
+                    $type = $params['adv_'.$page_type];
                     $id   = $params['adv_'.$page_type.'_id'];
                     
                     $options_list = $page_type == 'home' ? $this->home_types : $this->types;
@@ -733,6 +718,7 @@ class WunderCounter extends WunderPluginWidget {
                 echo "<div class='".$msg['type']."'><p>".wp_filter_kses($msg['msg'])."</p></div>";
             }
         }
+        
     ?>    
     <form method="post" action="<?php echo str_replace( '%7E', '~', $_SERVER['REQUEST_URI']); ?>">
         <input type="hidden" name="form_submitted" value="1" />
@@ -820,14 +806,6 @@ class WunderCounter extends WunderPluginWidget {
         <div id='wundercounter-simple' <?php if($options['complexity'] != 'simple') : ?>style='display:none;'<?php endif; ?>>    
             <table class="form-table" style='width: auto;'>
                 <tr valign='top'>
-                    <th scope='row'>Counter Type</th>
-                    <td>
-                        <select name='wundercounter[simple_type]' id='simple_type'>
-                            <?php echo $this->make_option_list(array('base' => 'Use a single counter', 'url' => 'Track all pages' ),$options['simple_type']); ?>
-                        </select>
-                    </td>
-                </tr>
-                <tr valign='top'>
                     <th scope='row'>Counter Name</th>
                     <td><input type='text' name='wundercounter[simple_id]' id='simple_id' value='<?php echo wp_specialchars($options['simple_id']); ?>'></td>
                 </tr>
@@ -843,13 +821,13 @@ class WunderCounter extends WunderPluginWidget {
                 <tr valign='top'>
                     <th scope='row'><?php echo wp_specialchars($label); ?> Type</th>
                     <td>
-                        <select name='wundercounter[adv_<?php echo wp_specialchars($id); ?>_type]' id='adv_<?php echo wp_specialchars($id); ?>_type'>
+                        <select name='wundercounter[adv_<?php echo wp_specialchars($id); ?>]' id='adv_<?php echo wp_specialchars($id); ?>'>
                             <?php
                                 $option_list = $id == 'home'
                                              ? $this->home_types
                                              : $this->types;
 
-                                echo $this->make_option_list($option_list,$options['adv_'.$id.'_type']);
+                                echo $this->make_option_list($option_list,$options['adv_'.$id]);
                             ?>
                         </select>
                     </td>
@@ -862,6 +840,7 @@ class WunderCounter extends WunderPluginWidget {
                             name='wundercounter[adv_<?php echo wp_specialchars($id); ?>_id]'
                             id='adv_<?php echo wp_specialchars($id); ?>_id'
                             value='<?php echo wp_specialchars($options['adv_'.$id.'_id']); ?>'
+                            <?php if($options['adv_'.$id] != 'simple') : ?>disabled='disabled' style='background-color: #999;'<?php endif; ?>
                     ></td>
                 </tr>
                 <?php endif; ?>
@@ -889,7 +868,7 @@ class WunderCounter extends WunderPluginWidget {
         // log the referrer
         if(!empty($_SERVER["HTTP_REFERER"]))
             $args['reF'] = $_SERVER["HTTP_REFERER"];
-            
+                    
         $link = 'http://www.wundercounter.com/cgi-bin/stats/image.cgi';
         if(count($args)) {
             $query_elements = array();
@@ -928,7 +907,7 @@ class WunderCounter extends WunderPluginWidget {
         }
         else {
             $html .= sprintf("<div style='text-align: %s;'>",wp_specialchars($options['align']))
-                   . sprintf("<a href='http://www.wundercounter.com/index.cgi?refID=%s'>",urlencode($options['username']));
+                   . sprintf("<a href='http://www.wundercounter.com/index.cgi?refID=%s' alt='WunderCounter' title='WunderCounter'>",urlencode($options['username']));
                    
             $args['digits'] = 5;
             if($options['style'] == 'default' ) {
@@ -942,20 +921,8 @@ class WunderCounter extends WunderPluginWidget {
 
         if($options['complexity'] == 'simple') {
             
-            if($options['simple_type'] == 'base') {
-                $args['page'] = $options['simple_id'];
-            }
-            elseif ($options['simple_type'] == 'url' ) {
-                $args['page'] = $this->url_string();
-                $args['total'] = 'Yes';
-            }
-            // invalid type, return nothing
-            else {
-                return '';
-            }
-            
+            $args['page'] = $options['simple_id'];
             $html .= $this->_make_link($args);
-
             
             if ($options['type'] != 'invisible') 
                 $html .= "</a></div>";
@@ -965,66 +932,28 @@ class WunderCounter extends WunderPluginWidget {
         /* Advanced */
         $base_id = $options['adv_base_id'];
         
-        $compose_id = '';
         $what_page = '';
         
-        if( is_front_page() ) {
+        if( is_front_page() )
             $what_page = 'home';
-        }
-        elseif( is_page() ) {
-            global $post;
+        elseif( is_page() )
             $what_page = 'page';
-            $composed = $post->post_name;
-        }
-        elseif( is_archive() ) {
+        elseif( is_archive() )
             $what_page = 'archive';
-            $composed = '';
-            if(is_category()) {
-                $composed = 'category';
-                $category = get_the_category();
-                if (!empty($category))
-                    $composed .= '-' . $category[0]->slug;
-            }
-            elseif(is_tag()) {
-                $compose = 'tag';
-                $tags = get_the_tags();
-                if(!empty($tags))
-                    $composed .= '-' . $tags[0]->slug;
-            }
-            elseif(is_day()) {
-                $compose = 'day-' . get_the_time('Y-m-d');
-            }
-            elseif(is_month()) {
-                $compose = 'month-' . get_the_time('Y-m');
-            }
-            elseif(is_year()) {
-                $compose = 'year-' . get_the_time('Y');
-            }
-        }
-        elseif (is_search()) {
-            $what_page = search;
-            $compose = trim(get_query_var('s'));
-        }
-        elseif (is_single()) {
-            global $post;
+        elseif (is_search())
+            $what_page = 'search';
+        elseif (is_single())
             $what_page = 'post';
-            $compose = $post->post_name;
-        }
-        else {
+        else
             $what_page = 'default';
-        }
         
-        $type = $options['adv_'.$what_page.'_type'];
+        $type = $options['adv_'.$what_page];
         if($type == 'none')
             return '';
         elseif ($type == 'base')
             $args['page'] = $base_id;
         elseif ($type == 'simple')
             $args['page'] = $base_id . '-' . trim($options['adv_'.$what_page.'_id']);
-        elseif (type == 'composed')
-            $args['page'] = $base_id . '-' . trim($options['adv_'.$what_page.'_id']) . (!empty($composed) ? "-{$composed}" : '');
-        elseif ($type == 'url')
-            $args['page'] = $this->url_string();
 
         // append the "total=Yes" if any of the advanced counters use something
         // other than 'base' or 'none'
@@ -1070,12 +999,13 @@ class WunderCounter extends WunderPluginWidget {
         extract($args,EXTR_SKIP);
         
         # get the config options
-        $options = $this->defaults(get_options($this->id_base));
+        $options = $this->defaults(get_option($this->id_base));
         $html    = $this->build_counter(&$options);
         
         if (!empty($html)) {
             echo $before_widget;
-            echo $before_title . $instance['title'] . $after_title;
+            if(!empty($instance['title']))
+                echo $before_title . $instance['title'] . $after_title;
             echo $html;
             echo $after_widget;
         }
