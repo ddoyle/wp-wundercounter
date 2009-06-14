@@ -475,13 +475,20 @@ class WunderCounter extends WunderPluginWidget {
         'none'      => 'Do not track this type of page',
         'base'      => 'Use the BCN as defined above',
         'simple'    => 'Append the ID below to the BCN',
-        //'composed'  => 'Append the ID and additional info to the BCN',
     );
+    // home doesn't ahve the "simple" option
     var $home_types = array(
         'none'      => 'Do not track this type of page',
         'base'      => 'Use the BCN as defined above',
     );
     
+    // these are the types of pages we'll track
+    // can't just add one here though, you'll need
+    // to add code for the type in the build_counter
+    // method.  order of the check will matter too.
+    // (ie. if you wanted to add an is_category() check, it'd have to come
+    // before is_archive() since all category pages are by definition,
+    // archive pages)
     var $advanced_counters = array(
         'home'      => 'Home Page',
         'page'      => 'Page',
@@ -491,6 +498,7 @@ class WunderCounter extends WunderPluginWidget {
         'default'   => 'Other Pages',
     );
     
+    // constructor
     function __construct() {
         parent::__construct(
             __FILE__,
@@ -530,8 +538,10 @@ class WunderCounter extends WunderPluginWidget {
     // only add the filter if it's invisible or visible-auto
     function add_counter_to_content_hook() {
         $options = $this->defaults(get_option($this->id_base));
+        
         if(in_array($options['type'],array('invisible','visible-auto')))
-            add_filter('get_footer',array(&$this,'add_counter_to_content'));
+            add_filter('wp_footer',array(&$this,'add_counter_to_content'));
+            // get_footer, wp_footer
     }
     // append the counter
     function add_counter_to_content() {
@@ -700,6 +710,11 @@ class WunderCounter extends WunderPluginWidget {
             
             $options = $params;
         }
+        
+        // add a notification that without the username the plugin will not function
+        if(empty($options['username'])) {
+            array_unshift($msgs,array('msg' => 'WunderCounter is inactive without a username.', 'type' => 'updated'));
+        }
         //DISPLAY
         ?>
 <div class="wrap">
@@ -743,14 +758,14 @@ class WunderCounter extends WunderPluginWidget {
                 <td><input type='radio' name='wundercounter[type]' id='type2' value='visible-auto' <?php if($options['type'] == 'visible-auto') { echo 'checked="checked"'; } ?> /></td>
                 <td>
                     Visible Counter (automatic)<br />
-                    <span style='font-size: .8em;'>Counter is automatically inserted at the end of each page just above the footer</span>
+                    <span style='font-size: .8em;'>Counter is automatically inserted at the end of each page just below the footer</span>
                 </td>
             </tr>
             <tr valign='top'>
                 <td><input type='radio' name='wundercounter[type]' id='type3' value='visible-manual' <?php if($options['type'] == 'visible-manual') { echo 'checked="checked"'; } ?> /></td>
                 <td>
                     Visible Counter (manual)<br />
-                    <span style='font-size: .8em;'>You must place the WunderCounter Widget into the sidebar(s) manually.</span>
+                    <span style='font-size: .8em;'>You must place the WunderCounter Widget into a sidebar or add <code>&lt;?php add_wundercounter(); ?&gt;</code> to your template manually.</span>
                 </td>
             </tr>
 
@@ -886,7 +901,7 @@ class WunderCounter extends WunderPluginWidget {
 
     }
     
-    function build_counter(&$options) {
+    function build_counter($options) {
         
         $options = $this->defaults($options);
 
@@ -1133,5 +1148,13 @@ add_action( 'widgets_init', array($example_multi,'register') );
 */
 
 $WunderCounter = new WunderCounter();
+
+function add_wundercounter() {
+    global $WunderCounter;
+    
+    echo $WunderCounter->build_counter(get_option($WunderCounter->id_base));
+    
+}
+
  
 ?>
