@@ -772,8 +772,8 @@ class WunderCounter extends WunderPluginWidget {
                 </td>
             </tr>
 
-            <tr valign="top">
-                <th scope="row">Style:<br /><span style='font-size: .8em'>(only applies when using one of the Visible counters)</span></th>
+            <tr valign="top" id="wundercounter-visual-style" <?php if($options['type'] == 'invisible'): ?>style='display:none'<?php endif; ?>>
+                <th scope="row">Style:</th>
                 <td colspan='2'>
                     <select name='wundercounter[style]' id='style'>
                         <?php echo $this->make_option_list($this->styles,$options['style']); ?>
@@ -781,8 +781,8 @@ class WunderCounter extends WunderPluginWidget {
                 </td>
             </tr>
 
-            <tr valign="top">
-                <th scope="row">Visual Counter Alignment<br /><span style='font-size: .8em'>(only applies when using one of the Visible counters)</span></th>
+            <tr valign="top" id="wundercounter-visual-align" <?php if($options['type'] == 'invisible'): ?>style='display:none'<?php endif; ?>>
+                <th scope="row">Visual Counter Alignment</span></th>
                 <td colspan='2'>
                     <select name='wundercounter[align]' id='align'>
                         <?php echo $this->make_option_list(array( 'center' => 'Center', 'left' => 'Left', 'right' => 'Right'),$options['align']); ?>
@@ -790,7 +790,7 @@ class WunderCounter extends WunderPluginWidget {
                 </td>
             </tr>
 
-            <tr valign='top'>
+            <tr valign='top' id="wundercounter-visual-textcolor"<?php if($options['type'] == 'invisible' || $options['style'] != 'default'): ?>style='display:none'<?php endif; ?>>
                 <th scope='row'>Text Color</th>
                 <td colspan='2'>
                     <select name='wundercounter[text_colour]' id='text_colour'>
@@ -799,8 +799,8 @@ class WunderCounter extends WunderPluginWidget {
                 </td>
             </tr>
     
-            <tr valign="top">
-                <th scope="row">Background Color<br /><span style='font-size: .8em'>(only applies when using the 'Default' style)</span></th>
+            <tr valign="top" id="wundercounter-visual-background"<?php if($options['type'] == 'invisible' || $options['style'] != 'default'): ?>style='display:none'<?php endif; ?>>
+                <th scope="row">Background Color</th>
                 <td colspan='2'>
                     <select name='wundercounter[background]' id='background'>
                         <?php echo $this->make_option_list($this->background,$options['background']); ?>
